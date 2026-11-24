@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Program Journey</title>
+<style>
+  :root {
+    --bg: #15110f; --page: #efe9da; --ink: #2a2428; --dim: #7a6f66; --red: #b3261e; --line: #3a302b; --text: #e9e1d3;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body { font: 17px/1.55 Georgia, "Iowan Old Style", "Palatino Linotype", serif; }
+  .game { max-width: 760px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-height: 100vh; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  header h1 { margin: 0; font-size: 15px; letter-spacing: .25em; text-transform: uppercase; color: var(--dim); font-weight: 400; }
+  header small { color: #5a4f48; font-size: 12px; }
+
+  /* Band 1: the sketch */
+  .sketchwrap { background: var(--page); border-radius: 4px; padding: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,0,0,.08); transform: rotate(-.3deg); }
+  canvas { width: 100%; aspect-ratio: 16 / 9; display: block; }
+
+  /* Band 2: the status strip */
+  .strip { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px;
+    font: 13px/1.2 ui-monospace, Menlo, Consolas, monospace; color: #cfc4b4; background: #1c1714; }
+  .strip b { color: #fff3df; font-weight: 600; }
+  .strip .sun { display: flex; align-items: center; gap: 8px; flex: 1 1 160px; }
+  .meter { flex: 1; height: 10px; border: 1px solid #5a3a30; border-radius: 6px; overflow: hidden; background: #120d0b; }
+  .meter i { display: block; height: 100%; background: linear-gradient(90deg, #6e130f, #c2361f 60%, #f08a3c); transition: width .5s ease; }
+  .meter i.low { animation: throb 1.2s ease-in-out infinite; }
+  @keyframes throb { 50% { opacity: .45; } }
+  .strip button { font: inherit; background: none; color: #cfc4b4; border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; cursor: pointer; }
+  .strip button:hover { border-color: #8a7a6a; }
+
+  /* Band 3: the text */
+  #band { flex: 1; }
+  #text p { margin: 0 0 .8em; }
+  #text .aside { color: #b9ab98; font-style: italic; font-size: .95em; }
+  #text .voice { color: #d8cfc0; border-left: 2px solid #5a4a40; padding-left: 10px; }
+  #text .garble { font-family: ui-monospace, Menlo, monospace; color: #e8a27a; letter-spacing: .04em; }
+  #text .reveal { color: #fff; border-left: 2px solid var(--red); padding-left: 10px; }
+  #text .truth { color: #ff8a7a; }
+  .endtitle { margin: 0 0 .5em; font-weight: 400; letter-spacing: .12em; text-transform: uppercase; color: #ff8a7a; font-size: 22px; }
+  .pack { padding-left: 1.1em; color: #d8cfc0; font-size: .95em; }
+  .pack li { margin-bottom: .4em; }
+  .found { margin-top: 1em; }
+  #choices { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+  .choice { text-align: left; background: #201a16; color: var(--text); border: 1px solid var(--line); border-left: 3px solid #8a3a2a;
+    border-radius: 6px; padding: 10px 14px; cursor: pointer; font: inherit; display: flex; flex-direction: column; gap: 2px; }
+  .choice:hover:not(:disabled) { background: #2a211b; border-left-color: #d0503a; }
+  .choice:disabled { opacity: .4; cursor: default; }
+  .choice .lbl { font-size: 1em; }
+  .choice .sub { font: 12px/1.3 ui-monospace, Menlo, monospace; color: #9a8c7c; }
+  .choice.small { padding: 8px 12px; margin-top: 6px; }
+
+  .pack-modal { position: fixed; inset: 0; background: rgba(10,7,6,.75); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 4; }
+  .pack-modal.show { display: flex; }
+  .pack-modal .box { background: #1c1714; border: 1px solid var(--line); border-radius: 8px; padding: 18px; max-width: 480px; width: 100%; max-height: 85vh; overflow: auto; }
+  .pack-modal h2 { margin: 0 0 8px; font-weight: 400; letter-spacing: .1em; font-size: 16px; text-transform: uppercase; color: #cfc4b4; }
+  #debug { display: none; font: 11px ui-monospace, monospace; color: #6fd29a; background: #0c1410; padding: 6px 8px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="game">
+  <header><h1>Program Journey</h1><small>prototype · working title</small></header>
+
+  <div class="sketchwrap"><canvas id="sketch" width="960" height="540"></canvas></div>
+
+  <div class="strip" id="strip">
+    <span>Candles: <b id="candles">0</b></span>
+    <span>Supplies: <b id="supplies">Out</b></span>
+    <span>Family: <b id="family">4/4</b></span>
+    <span id="moneyWrap">Chore money: <b id="money">$0</b></span>
+    <span class="sun">Sun <span class="meter"><i id="sunfill" style="width:100%"></i></span></span>
+    <button id="packBtn">Pack</button>
+  </div>
+  <div id="debug"></div>
+
+  <div id="band">
+    <div id="text"></div>
+    <div id="choices"></div>
+  </div>
+</div>
+
+<div class="pack-modal" id="pack">
+  <div class="box">
+    <h2>Pack</h2>
+    <div id="packBody"></div>
+    <button class="choice small" id="packClose"><span class="lbl">Close</span></button>
+  </div>
+</div>
+
+<script src="art.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
