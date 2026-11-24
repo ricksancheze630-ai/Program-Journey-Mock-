@@ -41,7 +41,7 @@ Open `index.html` in any modern browser. There's no build step and nothing to in
 
 - Humanity hits 0 at any point → **Part of the House**
 - Sun hits 0 → **Lights Out**
-- On the roof: humanity ≥ 7 and all three family members still with you → **Golden Hour**. Nobody left → **Full**. Anything in between → **Hold the Door**.
+- On the roof: humanity in the top range and all three family members still with you → **Golden Hour**. Nobody left → **Full**. Anything in between → **Hold the Door**.
 
 ## Placeholder answers to the open questions
 

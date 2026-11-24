@@ -160,7 +160,7 @@ const Sketch = (() => {
   function youOpts(st) {
     const it = st.items || [];
     return { traits: { eyes: it.includes("glasses"), claws: it.includes("gloves"), legs: it.includes("sneakers"), ears: it.includes("seashell"), heart: it.includes("locket") },
-      shade: Math.max(0, (7 - st.hum) / 7) };
+      shade: Math.max(0, (10 - st.hum) / 10) };
   }
   function familyRow(st, x, y, s, gap) {
     let i = 0;
@@ -366,9 +366,9 @@ const Sketch = (() => {
     mirror(st) {
       ell(480, 260, 170, 220, { w: 2.4 }); ell(480, 260, 182, 232, { w: 1.2, a: .5 });
       ctx.save(); ctx.beginPath(); ctx.ellipse(480, 260, 165, 215, 0, 0, Math.PI * 2); ctx.clip();
-      hatch(300, 40, 360, 440, { a: .1 + (10 - st.hum) * .03, gap: 6 });
-      if (st.hum <= 1) { /* only the hallway */ poly([[330, 470], [430, 220], [530, 220], [630, 470]], false, { a: .5 }); }
-      else { const o = youOpts(st); o.traits.eyes = o.traits.eyes || st.hum < 6; o.traits.ears = o.traits.ears || st.hum < 4; o.traits.claws = o.traits.claws || st.hum < 3; person(480, 470, 1.45, "you", { ...o, shade: (10 - st.hum) / 6, smile: st.hum < 4 }); }
+      hatch(300, 40, 360, 440, { a: .1 + (14 - st.hum) * .022, gap: 6 });
+      if (st.hum <= 2) { /* only the hallway */ poly([[330, 470], [430, 220], [530, 220], [630, 470]], false, { a: .5 }); }
+      else { const o = youOpts(st); o.traits.eyes = o.traits.eyes || st.hum < 9; o.traits.ears = o.traits.ears || st.hum < 6; o.traits.claws = o.traits.claws || st.hum < 4; person(480, 470, 1.45, "you", { ...o, shade: (14 - st.hum) / 9, smile: st.hum < 6 }); }
       ctx.restore();
     },
     fight(st) {

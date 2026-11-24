@@ -3,6 +3,9 @@
 // (sun, candles, supplies, money). Humanity is hidden and only ever shown through art, narration and missing options.
 "use strict";
 
+// Hidden humanity: starts at HMAX, never displayed. Tuned so taking every item and winning every fight reaches the roof on fumes ("Full").
+const HMAX = 14;
+
 const NAMES = { dad: "Dad", mom: "Mom", bro: "your brother" };
 const Cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -41,7 +44,7 @@ function garble(s, amt) {
 // ---------- state ----------
 function newState() {
   const st = {
-    scene: "title", sun: 100, candles: 1, supplies: 0, money: 0, hum: 10,
+    scene: "title", sun: 100, candles: 1, supplies: 0, money: 0, hum: HMAX,
     floor: 0, fam: { dad: "with", mom: "with", bro: "with" },
     items: [], drops: [], killed: [], left: [], flags: {}, chores: [], fight: null, fightsDone: 0,
     candlesBurned: 0, turn: 0, extra: "", returnTo: null, revealed: false,
@@ -49,18 +52,18 @@ function newState() {
   st.withYou = k => st.fam[k] === "with" || st.fam[k] === "saved";
   st.has = k => st.items.includes(k);
   st.famCount = () => 1 + ["dad", "mom", "bro"].filter(k => st.withYou(k) && !(st.fight && st.fight.who === k && !st.fight.done)).length;
-  st.tier = () => st.hum >= 7 ? 0 : st.hum >= 4 ? 1 : st.hum >= 2 ? 2 : 3;
-  st.dread = () => Math.min(1.45, st.floor * .22 + (10 - st.hum) * .07 + st.candlesBurned * .02 + (st.flags.asleep ? .05 : 0));
+  st.tier = () => st.hum >= 10 ? 0 : st.hum >= 6 ? 1 : st.hum >= 3 ? 2 : 3;
+  st.dread = () => Math.min(1.45, st.floor * .22 + (HMAX - st.hum) * .05 + st.candlesBurned * .02 + (st.flags.asleep ? .05 : 0));
   return st;
 }
 let S = newState();
 
 // Narration voice: [warm, cold, "the child", "it"]
 const V = (...lines) => lines[Math.min(S.tier(), lines.length - 1)];
-const sweet = () => S.hum >= 6 ? ", sweetheart" : "";
+const sweet = () => S.hum >= 9 ? ", sweetheart" : "";
 const supplyWord = n => n >= 5 ? "Good" : n >= 3 ? "Fair" : n >= 1 ? "Low" : "Out";
-const kind = () => S.hum >= 6;   // kind options quietly vanish
-const cold = () => S.hum <= 5;   // cold options quietly appear
+const kind = () => S.hum >= 9;   // kind options quietly vanish
+const cold = () => S.hum <= 8;   // cold options quietly appear
 
 function lose(k, how) {
   if (!S.withYou(k)) return;
@@ -166,7 +169,7 @@ function janitorScene(fl) {
             <p>"Keep it. That doesn't work up here." He taps the box. "I'll just take a little of you. You won't miss it."</p>`,
         3: `<p>The last closet. He's sitting on his bucket now, like he's been waiting a long time.</p>
             <p>"Last stop," he says. "Most folks pick something up here. Takes the edge off."</p>
-            ${S.withYou("dad") && S.hum <= 5 ? `<p>Dad steps between you and your brother. He doesn't say why.</p>` : ""}`,
+            ${S.withYou("dad") && cold() ? `<p>Dad steps between you and your brother. He doesn't say why.</p>` : ""}`,
       }[fl];
       return `${S.extra}${intro}${S.flags.boughtMsg ? S.flags.boughtMsg : ""}`;
     },
@@ -223,7 +226,7 @@ function stairScene(n, next) {
         S.extra = msg;
       };
       const opts = [
-        S.withYou("bro") && kind() && !S.has("locket") && { label: n === 2 ? "Carry your brother" : "Hug your brother until it passes", sub: "He needs you", cost: { sun: n === 2 ? 6 : 4 }, do: () => { S.hum = Math.min(10, S.hum + 1); S.flags["carried" + n] = true; after(); }, go: next },
+        S.withYou("bro") && kind() && !S.has("locket") && { label: n === 2 ? "Carry your brother" : "Hug your brother until it passes", sub: "He needs you", cost: { sun: n === 2 ? 6 : 4 }, do: () => { S.hum = Math.min(HMAX, S.hum + 1); S.flags["carried" + n] = true; after(); }, go: next },
         { label: n === 3 ? "Climb" : "Count the steps out loud and keep climbing", cost: { sun: 3 }, do: after, go: next },
         S.withYou("bro") && cold() && !S.has("locket") && { label: "Shake him off. He'll keep up.", cost: { sun: 1 }, do: () => { S.hum -= 1; lose("bro", "lost"); after(); S.extra = `<p>He doesn't keep up.</p>` + S.extra; }, go: next },
       ];
@@ -261,9 +264,9 @@ SC.momroom = {
 SC.broroom = {
   art: "broroom",
   text: () => `<p>Your brother's room is built out of board games. The walls are boxes. The floor is a board. Somebody has written YOUR TURN across the ceiling.</p>
-    <p>The only way through is a vent no bigger than a cereal box. ${S.hum <= 4 ? "Your brother doesn't say anything. He hasn't said anything for a while." : `"I can fit," he says. "But then it's my turn. You promised."`}</p>`,
+    <p>The only way through is a vent no bigger than a cereal box. ${S.hum <= 6 ? "Your brother doesn't say anything. He hasn't said anything for a while." : `"I can fit," he says. "But then it's my turn. You promised."`}</p>`,
   choices: () => [
-    kind() && { label: "\"Deal. It's your turn.\"", sub: "Let him go first", cost: { sun: 3 }, go: "closet2", do: () => { S.hum = Math.min(10, S.hum + 1); S.extra = `<p>He wriggles through the vent and opens the far door from the other side, beaming. For a second, it's just movie night again.</p>`; } },
+    kind() && { label: "\"Deal. It's your turn.\"", sub: "Let him go first", cost: { sun: 3 }, go: "closet2", do: () => { S.hum = Math.min(HMAX, S.hum + 1); S.extra = `<p>He wriggles through the vent and opens the far door from the other side, beaming. For a second, it's just movie night again.</p>`; } },
     { label: "Send him through the vent", cost: { sun: 2 }, go: "closet2", do: () => { S.extra = `<p>He goes. The far door opens. He doesn't look at you.</p>`; } },
     cold() && { label: "\"Hurry up.\"", cost: { sun: 1 }, go: "closet2", do: () => { S.hum -= 1; S.flags.broSilent = true; S.extra = `<p>He hurries. He stops talking to you after that.</p>`; } },
   ],
@@ -281,16 +284,16 @@ SC.mirror = {
   art: "mirror",
   text: () => {
     const lines = [];
-    if (S.hum >= 8) lines.push("You look tired and scared and a little pale. But it's you. Still you.");
-    else if (S.hum >= 5) lines.push("You look fine. You look fine. Why do you keep telling yourself that?");
-    else if (S.hum >= 2) lines.push("Something in the glass smiles a half-second before you do.");
+    if (S.hum >= 12) lines.push("You look tired and scared and a little pale. But it's you. Still you.");
+    else if (S.hum >= 8) lines.push("You look fine. You look fine. Why do you keep telling yourself that?");
+    else if (S.hum >= 3) lines.push("Something in the glass smiles a half-second before you do.");
     else lines.push("The mirror shows the room behind you. Just the room.");
     if (S.has("glasses")) lines.push("Your eyes don't reflect the candle. They make their own light.");
     if (S.has("gloves")) lines.push("The gloves end in something that isn't fingers.");
     if (S.has("sneakers")) lines.push("Your knees bend one joint too many.");
     if (S.has("seashell")) lines.push("Your ears have curled to a point, like they're listening to something behind you.");
     if (S.has("locket")) lines.push("The locket ticks against your chest. It isn't a clock.");
-    if (S.hum <= 4 && S.candles > 0) { S.candles--; lines.push("You drop a candle and don't pick it up."); }
+    if (S.hum <= 6 && S.candles > 0) { S.candles--; lines.push("You drop a candle and don't pick it up."); }
     return `<p>${lines.join("</p><p>")}</p>`;
   },
   choices: () => [{ label: "Look away", cost: { sun: 0 }, go: S.returnTo || "closet2" }],
@@ -321,7 +324,7 @@ SC.hall3 = {
   onEnter: () => { S.floor = 3; },
   text: () => `${S.extra}<p>The third floor. The wallpaper up here is a pattern of children: little printed faces, row after row, all smiling.</p>
     <p>Some of them are wearing glasses.</p>
-    ${S.withYou("mom") ? `<p>Mom says your name${S.hum >= 6 ? ", soft, like she's checking you're still there" : ". Just your name. Not sweetheart"}.</p>` : ""}`,
+    ${S.withYou("mom") ? `<p>Mom says your name${kind() ? ", soft, like she's checking you're still there" : ". Just your name. Not sweetheart"}.</p>` : ""}`,
   choices: () => [
     { label: "Look closer at the wallpaper", cost: { sun: 2 }, go: "closet3", do: () => { S.flags.lookedWall = true; S.extra = S.has("glasses") ? `<p class="aside">They aren't printed. They're pressed flat. Every one of them is wearing the same glasses you're wearing. One of them waves.</p>` : `<p class="aside">They aren't printed. They're pressed flat. Every one of them is wearing the same glasses that were in the Janitor's box.</p>`; } },
     { label: "Don't look. Keep going.", cost: { sun: 1 }, go: "closet3", do: () => { S.extra = ""; } },
@@ -340,7 +343,7 @@ SC.billiards = {
     return [
       ...deals,
       S.candles >= 3 && { label: "Trade three candles for daylight", sub: "+12 sun", cost: { candles: 3, sun: -12 }, go, do: () => { S.flags.movieHint = true; S.candlesBurned += 3; S.extra = `<p>The house blows them out one at a time, slowly, like birthday candles. The sun outside climbs back up a little.</p>`; } },
-      S.supplies >= 2 && S.famCount() > 1 && kind() && { label: "Share the food and rest a minute", sub: "Together", cost: { sun: 3, supplies: 2 }, go, do: () => { S.hum = Math.min(10, S.hum + 1); S.flags.movieHint = true; S.extra = `<p>You sit on the floor and split the last of the popcorn. Nobody talks. Nobody has to.</p>`; } },
+      S.supplies >= 2 && S.famCount() > 1 && kind() && { label: "Share the food and rest a minute", sub: "Together", cost: { sun: 3, supplies: 2 }, go, do: () => { S.hum = Math.min(HMAX, S.hum + 1); S.flags.movieHint = true; S.extra = `<p>You sit on the floor and split the last of the popcorn. Nobody talks. Nobody has to.</p>`; } },
       { label: "\"No deal.\"", cost: { sun: 2 }, go, do: () => { S.flags.movieHint = true; S.extra = `<p>"Suit yourself," says the house. "Everybody deals eventually."</p>`; } },
       !S.flags.mirror3 && { label: "Look in the mirror behind the bar", sub: "Costs a turn", cost: { sun: 3 }, go: "mirror", do: () => { S.flags.mirror3 = true; S.returnTo = "billiards"; } },
     ];
@@ -387,7 +390,7 @@ SC.fight = {
     const f = S.fight;
     if (f.done) return [{ label: f.done === "saved" ? "Keep climbing, together" : "Keep climbing", cost: { sun: 0 }, go: f.next, do: () => { S.fight = null; } }];
     const round = (fn) => () => { f.round++; f.cower = false; f.log = ""; fn(); };
-    const hit = () => { S.hum -= 1; f.attacks++; if (f.attacks >= 2) finish("gone"); else { f.cower = true; f.log = `<p>You swing. It doesn't swing back. It throws its arms over its head and backs into the wall, and the noise it makes sounds almost like a word.</p>`; } };
+    const hit = () => { f.attacks++; if (f.attacks >= 2) { S.hum -= 1; finish("gone"); } else { f.cower = true; f.log = `<p>You swing. It doesn't swing back. It throws its arms over its head and backs into the wall, and the noise it makes sounds almost like a word.</p>`; } };
     const items = [
       S.candles > 0 && { label: "Hold up a candle", cost: { sun: 2, candles: 1 }, do: round(() => { f.log = `<p>${GARBLE[f.who].candle}</p>`; }) },
       S.supplies > 0 && { label: "Throw it some popcorn", cost: { sun: 2, supplies: 1 }, do: round(() => { f.log = `<p>${GARBLE[f.who].popcorn}</p>`; }) },
@@ -409,7 +412,7 @@ function finish(how) {
   const f = S.fight; f.done = how; f.menu = null;
   if (how === "gone") { lose(f.who, "gone"); S.killed.push(f.who); S.drops.push(f.who); }
   if (how === "fled") lose(f.who, "lost");
-  if (how === "saved") { S.fam[f.who] = "saved"; S.hum = Math.min(10, S.hum + 1); }
+  if (how === "saved") { S.fam[f.who] = "saved"; S.hum = Math.min(HMAX, S.hum + 1); }
 }
 // "fight:slot:next": if the glasses are on and someone is still with you, they become the monster.
 function route(target) {
@@ -427,13 +430,13 @@ function route(target) {
 // ---------- endings ----------
 function computeEnding() {
   const withMe = ["dad", "mom", "bro"].filter(k => S.withYou(k));
-  if (S.hum >= 7 && withMe.length === 3) return "golden";
+  if (S.hum >= 10 && withMe.length === 3) return "golden";
   if (withMe.length === 0) return "full";
   return "door";
 }
 const ENDINGS = {
   golden: { title: "Golden Hour", art: "end_golden", text: () => `<p>The sunset swallows all of you.</p><p>You wake up on the couch. The credits are rolling. Out the window there's a real sunset, the normal kind, already halfway behind the mountains. Dad is snoring. Mom is on chapter thirteen. Your brother is shaking your arm: "It's my turn. You promised."</p><p>Everyone's fine. Perfectly normal.</p><p class="aside">On the coffee table there's a pair of glasses that wasn't there before.</p>` },
-  door: { title: "Hold the Door", art: "end_door", text: () => { const w = ["dad", "mom", "bro"].filter(k => S.withYou(k)).map(k => NAMES[k]); return `<p>${S.hum >= 7 ? "You could leave. But somebody has to hold the door, and you're the one who brought the house all the way up here." : "You're too far gone to leave, and you know it."}</p><p>You put your back against the roof door and hold it shut against the house so ${w.join(" and ")} can walk out into the sun.</p><p>The house pounds on the door for a long time. You hold it longer.</p><p class="aside">Next movie night, a new family piles onto the couch. In the wallpaper, a face that looks a lot like yours is smiling gently.</p>`; } },
+  door: { title: "Hold the Door", art: "end_door", text: () => { const w = ["dad", "mom", "bro"].filter(k => S.withYou(k)).map(k => NAMES[k]); return `<p>${S.hum >= 10 ? "You could leave. But somebody has to hold the door, and you're the one who brought the house all the way up here." : "You're too far gone to leave, and you know it."}</p><p>You put your back against the roof door and hold it shut against the house so ${w.join(" and ")} can walk out into the sun.</p><p>The house pounds on the door for a long time. You hold it longer.</p><p class="aside">Next movie night, a new family piles onto the couch. In the wallpaper, a face that looks a lot like yours is smiling gently.</p>`; } },
   full: { title: "Full", art: "end_full", text: () => {
     let t = `<p>You reach the roof, and the sunset is beautiful.</p><p>You're alone up here. You don't mind. You're not even hungry anymore.</p>`;
     if (S.killed.length || S.left.length) t += `<p>Then you remember. All of it, with the missing lines filled in:</p>`;
